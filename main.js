@@ -59,8 +59,9 @@
   const nameEl = document.getElementById('name');
   const showName = () => { nameEl.textContent = save.name ? `${save.name}  ${'♥'.repeat(Math.min(5, Math.ceil(save.love / 20)))}` : ''; };
 
-  // 動作確認用:URLに ?speed=60 を付けると、空腹などが60倍の速さで進む
-  const TS = Number(new URLSearchParams(location.search).get('speed')) || 1;
+  // 動作確認用:URLに ?speed=60 を付けると、空腹などが60倍の速さで進む(手元で開いたときだけ有効)
+  const isLocal = ['localhost', '127.0.0.1', '[::1]', ''].includes(location.hostname);
+  const TS = (isLocal && Number(new URLSearchParams(location.search).get('speed'))) || 1;
 
   // ---- 欲求の経過(1時間あたり)----
   const RATE = { hunger: 10, thirst: 12, bladder: 8, lovePerBad: 2 };
