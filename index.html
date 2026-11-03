@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#2b2233">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ねこ">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ねこ</title>
+<style>
+  html,body{margin:0;height:100%;background:#2b2233;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    font-family:-apple-system,"Hiragino Sans",sans-serif;color:#fff}
+  body{display:flex;flex-direction:column}
+  #wrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+  #hud{position:fixed;top:env(safe-area-inset-top);left:0;right:0;display:flex;
+    justify-content:space-between;align-items:center;padding:8px 12px;pointer-events:none;z-index:3}
+  #name{font-size:15px;text-shadow:0 1px 2px #0008}
+  #mute{pointer-events:auto;width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:50%;padding:0;
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .1s}
+  #mute:active{transform:scale(.92)}
+  #mute .off{display:none}
+  #mute.muted{color:#ffffffa0;background:rgba(0,0,0,.28)}
+  #mute.muted .on{display:none}
+  #mute.muted .off{display:block}
+  #hello{z-index:10;position:fixed;inset:0;background:#2b2233ee;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;text-align:center}
+  #hello input{font-size:18px;padding:10px;border-radius:10px;border:0;width:200px;text-align:center}
+  #hello button{font-size:16px;padding:10px 24px;border-radius:10px;border:0;background:#f0a25a;color:#3b2a2a}
+  /* 下のお世話ボタン:画面の幅に合わせて等分する */
+  #care{flex:none;display:flex;justify-content:center;gap:6px;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#1c1624}
+  #care button{position:relative;flex:1;max-width:62px;min-width:0;height:60px;border:0;border-radius:12px;background:#4a3f6b;
+    color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0;font-family:inherit}
+  #care button span{font-size:22px;line-height:1}
+  #care button small{font-size:10px;line-height:1;opacity:.9}
+  #care button.warn{background:#8e3a3a;animation:blink 1s infinite}
+  #care button.low{background:#8a6a2a}
+  #care button.on{background:#d97aa0}
+  #toyMenu{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,8px);
+    display:flex;gap:8px;padding:8px;border-radius:18px;background:rgba(28,22,36,.92);border:1px solid rgba(255,255,255,.15);
+    opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:4}
+  #toyMenu.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+  #toyMenu button{width:74px;height:62px;border:0;border-radius:12px;background:#4a3f6b;color:#fff;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;font-family:inherit;padding:0}
+  #toyMenu button span{font-size:24px;line-height:1}
+  #toyMenu button small{font-size:11px;line-height:1}
+  #a2hs{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));max-width:340px;margin:0 auto;
+    display:none;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(28,22,36,.96);
+    border:1px solid rgba(255,255,255,.18);font-size:12px;line-height:1.5;z-index:6}
+  #a2hs small{opacity:.75;font-size:11px}
+  #a2hs button{flex:none;border:0;border-radius:10px;padding:8px 12px;font-size:13px;background:#f0a25a;color:#3b2a2a}
+  #hello .note{font-size:11px;opacity:.7;line-height:1.6;max-width:260px}
+  @keyframes blink{50%{opacity:.65}}
+  #toast{position:fixed;top:calc(46px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+    background:#000a;padding:8px 14px;border-radius:14px;font-size:14px;opacity:0;transition:opacity .4s;
+    pointer-events:none;max-width:86vw;text-align:center;z-index:5}
+  #book{position:fixed;inset:0;background:#1c1624ee;display:none;align-items:center;justify-content:center;z-index:10}
+  #book .card{background:#3a3050;border-radius:18px;padding:18px;width:min(88vw,360px);max-height:86vh;overflow:auto;text-align:center}
+  #book h3{margin:0 0 12px;font-size:17px}
+  #grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  #grid div{background:#2b2233;border-radius:10px;padding:6px 2px;font-size:10px;line-height:1.3}
+  #grid canvas{width:42px;height:42px;image-rendering:pixelated;display:block;margin:0 auto 3px}
+  #diaryBox{margin:0;text-align:left;font-size:12px;line-height:1.7;color:#e6dcf5}
+  #diaryBox b{color:#ffd34d;font-weight:normal}
+  #tabs{display:flex;gap:4px;padding:4px;border-radius:12px;background:#2b2233;margin-bottom:12px}
+  #book #tabs button{flex:1;padding:8px 0;font-size:13px;border-radius:9px;background:transparent;color:#cdbfe6}
+  #book #tabs button.on{background:#4a3f6b;color:#fff}
+  .panel{height:min(46vh,300px);overflow:auto;margin-bottom:14px}
+  .panel.center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+  .panel .row{display:flex;gap:8px}
+  .panel input{font-size:18px;padding:10px;border-radius:10px;border:0;width:140px;text-align:center}
+  .panel .note{font-size:11px;opacity:.7}
+  #cnt{margin:0 0 8px;font-size:12px;color:#cdbfe6;text-align:center}
+  #book button{font-size:15px;padding:9px 24px;border-radius:10px;border:0;background:#f0a25a;color:#3b2a2a}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="hello">
+  <div>ねこが いる。<br>なまえを つけてあげてね</div>
+  <input id="nameInput" maxlength="8" placeholder="ミケ">
+  <button id="ok">はじめる</button>
+  <div class="note">プライベートモードでは、とじると<br>ねこの データが きえてしまうよ</div>
+</div>
+<div id="hud"><div id="name"></div><button id="mute" aria-label="おとのオン・オフ"><svg class="on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></svg><svg class="off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button></div>
+<div id="care">
+  <button id="bFood" aria-label="ごはん"><span>🍚</span><small>ごはん</small></button>
+  <button id="bWater" aria-label="お水"><span>💧</span><small>おみず</small></button>
+  <button id="bBox" aria-label="トイレそうじ"><span>🧹</span><small>トイレ</small></button>
+  <button id="bToy" aria-label="おもちゃ"><span>🪶</span><small>あそぶ</small></button>
+  <button id="bGift" aria-label="おみやげ" style="display:none"><span>🎁</span><small>おみやげ</small></button>
+  <button id="bBook" aria-label="たからばこ"><span>📖</span><small>ずかん</small></button>
+</div>
+<div id="toyMenu">
+  <button data-k="wand"><span>🪶</span><small>じゃらし</small></button>
+  <button data-k="ball"><span>🔴</span><small>ボール</small></button>
+  <button data-k="nip"><span>🌿</span><small>またたび</small></button>
+</div>
+<div id="a2hs">
+  <div>ホーム画面に追加すると、ねこのデータが消えにくくなるよ<br><small>共有ボタン → 「ホーム画面に追加」</small></div>
+  <button id="a2hsClose">とじる</button>
+</div>
+<div id="toast"></div>
+<div id="book">
+  <div class="card">
+    <div id="tabs">
+      <button data-t="pGrid" class="on">ずかん</button>
+      <button data-t="pDiary">にっき</button>
+      <button data-t="pName">なまえ</button>
+    </div>
+    <div id="cnt"></div>
+    <div class="panel" id="pGrid"><div id="grid"></div></div>
+    <div class="panel" id="pDiary" style="display:none"><div id="diaryBox"></div></div>
+    <div class="panel center" id="pName" style="display:none">
+      <div class="row"><input id="renameInput" maxlength="8"><button id="renameOk">かえる</button></div>
+      <div class="note">なまえを かえても、なかよしの ようすは そのままだよ</div>
+    </div>
+    <button id="closeBook">とじる</button>
+  </div>
+</div>
+<script src="sprites.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
