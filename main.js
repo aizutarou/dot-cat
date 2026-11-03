@@ -611,7 +611,17 @@
     }
     if (toy.on) { moveToy(p, true); return; }
     if (onCat(p)) {
-      if (cat.state !== 'angry' && cat.cool <= 0 && zoneAt(p) === 'tail') getAngry(p);
+      // タップだけでも反応する(なでる=なぞる、だけだとスマホでは気づきにくい)
+      if (cat.state !== 'angry' && cat.cool <= 0) {
+        const zone = zoneAt(p);
+        if (zone === 'tail' || (zone === 'belly' && save.love < 40)) getAngry(p);
+        else if (save.love < 15 && cat.sinceTouch > 1.5 && Math.random() < 0.5) shy(p);
+        else {
+          petAcc += zone === 'head' ? 12 : zone === 'belly' ? 20 : 8;
+          cat.sinceTouch = 0;
+          addHeart(p.x, p.y - 8);
+        }
+      }
     } else if (save.love >= 30 && cat.state !== 'sleep' && cat.state !== 'angry' && cat.cool <= 0) {
       // なついていれば、タップした場所に寄ってくる(奥行きも)
       goTo(p.x - catW / 2, p.y - 50, null); cat.dur = 8;
