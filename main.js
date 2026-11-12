@@ -4,7 +4,7 @@
   const WW = 360; // 部屋全体の横幅(画面の3倍)。猫を追ってスクロールする
   const FOOT = 56; // 猫の上端から足元までの高さ
   const YMIN = 142 - FOOT, YMAX = 182 - FOOT; // 奥〜手前(猫の上端y)
-  const cam = { x: 0, focusX: null, focusT: 0 };
+  const cam = { x: 0, goal: 0, focusX: null, focusT: 0 }; // goal: カメラが向かう場所(追従オフのときは、その場に留まる)
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
 
@@ -19,7 +19,7 @@
     canvas.width = W; canvas.height = H;
     canvas.style.width = W * s + 'px';
     canvas.style.height = H * s + 'px';
-    cam.x = Math.max(0, Math.min(cam.x, WW - W));
+    cam.x = Math.max(0, Math.min(cam.x, WW - W)); cam.goal = Math.max(0, Math.min(cam.goal, WW - W));
   }
   addEventListener('resize', fit); fit();
 
@@ -39,6 +39,7 @@
     bowlFood: 100, bowlWater: 100, dirt: 0, // ごはん皿・水皿の残量、トイレの汚れ
     last: 0, gone: false, giftAcc: 0, coat: null,
     gifts: [], book: {}, diary: [], // おみやげ・たからばこ・留守中の日記
+    follow: false,                   // 画面が猫を追いかけるか(初期はオフ)
     visits: 0, a2hsDone: false,      // 開いた回数・ホーム画面の案内をすませたか
   };
   let raw = {};
@@ -242,6 +243,14 @@
       tone([[0, 840 * p], [0.08, 1080 * p], [0.24, 900 * p]], 0.035, 1400, 0.32);
     }
   }
+  const followBtn = document.getElementById('follow');
+  const syncFollow = () => { followBtn.classList.toggle('on', !!save.follow); };
+  followBtn.onclick = (e) => {
+    e.stopPropagation(); ensureAudio();
+    save.follow = !save.follow; persist(); syncFollow();
+    toast(save.follow ? 'ねこを おいかけて うつすよ' : 'がめんを うごかして みられるよ');
+  };
+  syncFollow();
   const muteBtn = document.getElementById('mute');
   muteBtn.onclick = (e) => {
     e.stopPropagation(); ensureAudio();
@@ -412,10 +421,10 @@
     }
   }
   chooseNext();
-  cam.x = clamp(cat.x + catW / 2 - W / 2, 0, WW - W);
+  cam.x = clamp(cat.x + catW / 2 - W / 2, 0, WW - W); cam.goal = cam.x;
   if (save.gifts.length) { // おみやげのそばで、猫が待っている
     cat.x = 140; cat.y = 150 - FOOT; cat.dir = 1; enter('sit'); cat.dur = 6;
-    cam.x = clamp(GIFT_C - W / 2, 0, WW - W); cam.focusX = GIFT_C; cam.focusT = 3;
+    cam.x = clamp(GIFT_C - W / 2, 0, WW - W); cam.goal = cam.x; cam.focusX = GIFT_C; cam.focusT = 3;
   }
   setTimeout(() => startToasts.forEach((m) => toast(m)), 700);
 
@@ -481,7 +490,7 @@
   toyMenu.querySelectorAll('button').forEach((b) => { b.onclick = () => { ensureAudio(); toyMenu.classList.remove('show'); setToy(true, b.dataset.k); }; });
 
   const bGift = document.getElementById('bGift');
-  bGift.onclick = () => { ensureAudio(); cam.focusX = GIFT_C; cam.focusT = 6; }; // おみやげの場所を見せる
+  bGift.onclick = () => { ensureAudio(); cam.focusX = GIFT_C; cam.focusT = 1.5; }; // おみやげの場所を見せる(そのまま留まる)
   function updateButtons() {
     bGift.style.display = save.gifts.length ? '' : 'none';
     // 普段は普通の色、少なくなると黄色、なくなりそうなら赤く点滅
@@ -554,6 +563,7 @@
 
   // ---- 入力(なでる)----
   let down = false, lastPt = null, petAcc = 0, petHeartT = 0;
+  let pend = null, panning = false; // 何もない所を触った状態(タップ or ドラッグで画面を動かす)
   const toLogical = (e) => {
     const r = canvas.getBoundingClientRect();
     return { x: (e.clientX - r.left) / r.width * W + cam.x, y: (e.clientY - r.top) / r.height * H - OY };
@@ -622,14 +632,21 @@
           addHeart(p.x, p.y - 8);
         }
       }
-    } else if (save.love >= 30 && cat.state !== 'sleep' && cat.state !== 'angry' && cat.cool <= 0) {
-      // なついていれば、タップした場所に寄ってくる(奥行きも)
-      goTo(p.x - catW / 2, p.y - 50, null); cat.dur = 8;
-      if (Math.random() < 0.5) meow('soft');
+    } else {
+      // 何もない所:ドラッグなら画面を動かす。タップだけなら、なついた猫が寄ってくる(離したときに判定)
+      pend = { p, sx: e.clientX, camX: cam.x, moved: false };
     }
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!down || save.gone) return;
+    if (pend) {
+      const r = canvas.getBoundingClientRect(), dx = e.clientX - pend.sx;
+      if (pend.moved || Math.abs(dx) > 8) {
+        pend.moved = true; panning = true; cam.focusT = 0;
+        cam.x = clamp(pend.camX - dx / r.width * W, 0, WW - W); cam.goal = cam.x;
+      }
+      return;
+    }
     const p = toLogical(e);
     if (toy.on) { moveToy(p); lastPt = p; return; }
     if (onCat(p) && lastPt && cat.state !== 'angry' && cat.cool <= 0) {
@@ -645,7 +662,14 @@
     }
     lastPt = p;
   });
-  const up = () => { down = false; lastPt = null; };
+  const up = () => {
+    if (pend && !pend.moved && save.love >= 30 && cat.state !== 'sleep' && cat.state !== 'angry' && cat.cool <= 0) {
+      const p = pend.p; // なついていれば、タップした場所に寄ってくる(奥行きも)
+      goTo(p.x - catW / 2, p.y - 50, null); cat.dur = 8;
+      if (Math.random() < 0.5) meow('soft');
+    }
+    pend = null; panning = false; down = false; lastPt = null;
+  };
   canvas.addEventListener('pointerup', up);
   canvas.addEventListener('pointercancel', up);
 
@@ -938,9 +962,10 @@
   function loop(now) {
     const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
     update(dt);
-    let camTarget = clamp(cat.x + catW / 2 - W / 2, 0, WW - W);
-    if (cam.focusT > 0) { cam.focusT -= dt; camTarget = clamp(cam.focusX - W / 2, 0, WW - W); }
-    cam.x += (camTarget - cam.x) * Math.min(1, dt * 3);
+    // 追従オフなら、画面は動かさない。ボタンで場所を見せたときだけ、そこへ動いて留まる
+    if (cam.focusT > 0) { cam.focusT -= dt; cam.goal = clamp(cam.focusX - W / 2, 0, WW - W); }
+    else if (save.follow) cam.goal = clamp(cat.x + catW / 2 - W / 2, 0, WW - W);
+    if (!panning) cam.x += (cam.goal - cam.x) * Math.min(1, dt * 3);
     for (let i = hearts.length - 1; i >= 0; i--) { hearts[i].life += dt; if (hearts[i].life > 1) hearts.splice(i, 1); }
     for (let i = zs.length - 1; i >= 0; i--) { zs[i].life += dt * 0.6; if (zs[i].life > 1) zs.splice(i, 1); }
     btnT += dt; if (btnT > 0.3) { btnT = 0; updateButtons(); }
