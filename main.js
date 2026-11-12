@@ -57,8 +57,12 @@
     save.last = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { saveFailed = true; }
   };
-  const nameEl = document.getElementById('name');
-  const showName = () => { nameEl.textContent = save.name ? `${save.name}  ${'♥'.repeat(Math.min(5, Math.ceil(save.love / 20)))}` : ''; };
+  const nameEl = document.querySelector('#name .nm'), heartEl = document.querySelector('#name .hp');
+  // 名前の下になつき度(ハート)。ハートの数が変わっても、名前の位置は動かない
+  const showName = () => {
+    nameEl.textContent = save.name || '';
+    heartEl.textContent = save.name ? '♥'.repeat(Math.min(5, Math.ceil(save.love / 20))) : '';
+  };
 
   // 動作確認用:URLに ?speed=60 を付けると、空腹などが60倍の速さで進む(手元で開いたときだけ有効)
   const isLocal = ['localhost', '127.0.0.1', '[::1]', ''].includes(location.hostname);
