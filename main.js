@@ -38,7 +38,7 @@
     hunger: 80, thirst: 80, bladder: 20, // 満腹度・水分・トイレ我慢(高いほど行きたい)
     bowlFood: 100, bowlWater: 100, dirt: 0, // ごはん皿・水皿の残量、トイレの汚れ
     last: 0, gone: false, giftAcc: 0, coat: null,
-    gifts: [], book: {}, diary: [], // おみやげ・たからばこ・留守中の日記
+    gifts: [], book: {}, diary: [], // おみやげ・たからもの・留守中の日記
     follow: false,                   // 画面が猫を追いかけるか(初期はオフ)
     visits: 0, a2hsDone: false,      // 開いた回数・ホーム画面の案内をすませたか
   };
@@ -519,9 +519,23 @@
     for (let k = 0; k < 2; k++) addHeart(GIFT_X[i] + k * 6 - 3, GIFT_Y - 16 - k * 4);
     meow('chirp');
     toast(`${it.name}を もらった!${first ? '  ★はじめて' : ''}`);
-    if (ITEMS.every((x) => save.book[x.id])) toast('たからばこが ぜんぶ そろった!');
+    if (ITEMS.every((x) => save.book[x.id])) toast('たからものが ぜんぶ そろった!');
   }
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function showItem(it) {
+    const n = save.book[it.id] || 0, cv = document.getElementById('itemIcon');
+    const g = cv.getContext('2d'); g.clearRect(0, 0, 7, 7);
+    drawItem(g, it, 0, 0, 1, !n);
+    document.getElementById('itemName').textContent = n ? it.name : '？？？';
+    document.getElementById('itemRarity').textContent = n ? RARITY_LABEL[it.rarity] : 'まだ もらっていないよ';
+    document.getElementById('itemRarity').style.display = 'inline-block';
+    document.getElementById('itemDesc').textContent = n ? it.desc : 'ねこが もってきて くれるのを まってみよう。';
+    document.getElementById('itemCount').textContent = n ? `もらった かいすう:${n}かい` : '';
+    document.getElementById('itemModal').style.display = 'flex';
+  }
+  const closeItem = () => { document.getElementById('itemModal').style.display = 'none'; };
+  document.getElementById('itemClose').onclick = closeItem;
+  document.getElementById('itemModal').onclick = (e) => { if (e.target.id === 'itemModal') closeItem(); };
   function renderBook() {
     const grid = document.getElementById('grid'); grid.innerHTML = '';
     ITEMS.forEach((it) => {
@@ -530,7 +544,8 @@
       const cv = document.createElement('canvas'); cv.width = 7; cv.height = 7;
       drawItem(cv.getContext('2d'), it, 0, 0, 1, !got);
       cell.appendChild(cv);
-      cell.appendChild(document.createTextNode(got ? `${it.name} ×${got}` : '？？？'));
+      cell.appendChild(document.createTextNode(got ? it.name : '？？？'));
+      cell.onclick = () => showItem(it); // 押すと、説明ともらった回数が見られる
       grid.appendChild(cell);
     });
     document.getElementById('cnt').textContent = `${ITEMS.filter((x) => save.book[x.id]).length} / ${ITEMS.length} あつめたよ`;
