@@ -662,6 +662,19 @@
     }
     lastPt = p;
   });
+  // PC:タッチパッドの横スクロール・ホイール・矢印キーでも、画面を動かせる
+  const panBy = (d) => { cam.focusT = 0; cam.x = clamp(cam.x + d, 0, WW - W); cam.goal = cam.x; };
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const d = Math.abs(e.deltaX) >= Math.abs(e.deltaY) ? e.deltaX : e.deltaY; // 縦ホイールも左右の移動にする
+    panBy(d * (e.deltaMode === 1 ? 16 : 1) / r.width * W);
+  }, { passive: false });
+  addEventListener('keydown', (e) => {
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === 'ArrowLeft' || e.key === 'a') { panBy(-12); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'd') { panBy(12); e.preventDefault(); }
+  });
   const up = () => {
     if (pend && !pend.moved && save.love >= 30 && cat.state !== 'sleep' && cat.state !== 'angry' && cat.cool <= 0) {
       const p = pend.p; // なついていれば、タップした場所に寄ってくる(奥行きも)

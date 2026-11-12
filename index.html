@@ -43,7 +43,8 @@
   #hud{position:fixed;top:env(safe-area-inset-top);left:0;right:0;display:flex;
     justify-content:space-between;align-items:center;padding:8px 12px;pointer-events:none;z-index:3}
   #name{font-size:15px;text-shadow:0 1px 2px #0008}
-  #hud .btns{display:flex;gap:8px}
+  #hud .left{display:flex;align-items:center;gap:8px}
+  #follow{width:34px;height:34px}
   #follow,#mute{pointer-events:auto;width:40px;height:40px;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:50%;padding:0;
     -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background .2s,transform .1s}
@@ -113,7 +114,7 @@
   <button id="ok">はじめる</button>
   <div class="note">プライベートモードでは、とじると<br>ねこの データが きえてしまうよ</div>
 </div>
-<div id="hud"><div id="name"></div><div class="btns"><button id="follow" aria-label="ねこを おいかけて うつす"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5" fill="currentColor"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button><button id="mute" aria-label="おとのオン・オフ"><svg class="on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></svg><svg class="off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button></div></div>
+<div id="hud"><div class="left"><div id="name"></div><button id="follow" aria-label="ねこを おいかけて うつす"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5" fill="currentColor"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button></div><button id="mute" aria-label="おとのオン・オフ"><svg class="on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></svg><svg class="off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button></div>
 <div id="care">
   <button id="bFood" aria-label="ごはん"><span>🍚</span><small>ごはん</small></button>
   <button id="bWater" aria-label="お水"><span>💧</span><small>おみず</small></button>
